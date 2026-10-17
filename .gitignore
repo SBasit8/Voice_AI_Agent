@@ -1,0 +1,13 @@
+*.pdf
+__pycache__/
+*.pyc
+*.pyo
+.env
+patients.db
+*.db
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.DS_Store
+*.log

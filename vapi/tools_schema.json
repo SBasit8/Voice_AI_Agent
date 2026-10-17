@@ -1,0 +1,81 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "check_existing_patient",
+      "description": "Look up a patient by phone number before creating a new record. Call this as soon as the caller's phone number has been collected, so returning callers can be offered an update instead of a duplicate registration.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "phone_number": {
+            "type": "string",
+            "description": "The caller's 10-digit U.S. phone number, in any format (digits, dashes, spaces all accepted)."
+          }
+        },
+        "required": ["phone_number"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "create_patient",
+      "description": "Create a new patient registration record. Only call this after reading back all collected information and receiving explicit confirmation from the caller. The backend re-validates every field; if it returns success:false, re-prompt the caller for exactly the field named in the response.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "first_name": { "type": "string", "description": "Patient's first name. Letters, hyphens, and apostrophes only." },
+          "last_name": { "type": "string", "description": "Patient's last name. Letters, hyphens, and apostrophes only." },
+          "date_of_birth": { "type": "string", "description": "Date of birth in ISO format YYYY-MM-DD. Must not be in the future." },
+          "sex": { "type": "string", "enum": ["Male", "Female", "Other", "Decline to Answer"], "description": "Sex on file, exactly one of the enum values." },
+          "phone_number": { "type": "string", "description": "10-digit U.S. phone number." },
+          "email": { "type": "string", "description": "Optional email address." },
+          "address_line_1": { "type": "string", "description": "Street address." },
+          "address_line_2": { "type": "string", "description": "Optional apartment/suite/unit." },
+          "city": { "type": "string", "description": "City name." },
+          "state": { "type": "string", "description": "2-letter U.S. state abbreviation." },
+          "zip_code": { "type": "string", "description": "5-digit or ZIP+4 U.S. zip code." },
+          "insurance_provider": { "type": "string", "description": "Optional insurance company name." },
+          "insurance_member_id": { "type": "string", "description": "Optional insurance member/subscriber ID." },
+          "preferred_language": { "type": "string", "description": "Optional preferred language, defaults to English." },
+          "emergency_contact_name": { "type": "string", "description": "Optional emergency contact full name." },
+          "emergency_contact_phone": { "type": "string", "description": "Optional emergency contact 10-digit U.S. phone number." }
+        },
+        "required": [
+          "first_name", "last_name", "date_of_birth", "sex", "phone_number",
+          "address_line_1", "city", "state", "zip_code"
+        ]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "update_patient",
+      "description": "Update an existing patient record, found via check_existing_patient. Only include fields the caller actually wants changed; omit everything else.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "patient_id": { "type": "string", "description": "The existing patient's ID, from check_existing_patient's response." },
+          "first_name": { "type": "string" },
+          "last_name": { "type": "string" },
+          "date_of_birth": { "type": "string", "description": "ISO format YYYY-MM-DD." },
+          "sex": { "type": "string", "enum": ["Male", "Female", "Other", "Decline to Answer"] },
+          "phone_number": { "type": "string" },
+          "email": { "type": "string" },
+          "address_line_1": { "type": "string" },
+          "address_line_2": { "type": "string" },
+          "city": { "type": "string" },
+          "state": { "type": "string" },
+          "zip_code": { "type": "string" },
+          "insurance_provider": { "type": "string" },
+          "insurance_member_id": { "type": "string" },
+          "preferred_language": { "type": "string" },
+          "emergency_contact_name": { "type": "string" },
+          "emergency_contact_phone": { "type": "string" }
+        },
+        "required": ["patient_id"]
+      }
+    }
+  }
+]

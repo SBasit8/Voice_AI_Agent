@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Patient Registry Dashboard</title>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --border: #e2e5ec;
+    --text: #1b1f2a;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-weak: #eef2ff;
+    --danger: #dc2626;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --card: #171a21;
+      --border: #272b35;
+      --text: #e7e9ee;
+      --muted: #9aa1ad;
+      --accent: #5b8def;
+      --accent-weak: #19233a;
+      --danger: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  h1 { font-size: 1.25rem; margin: 0; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+  main { padding: 24px 32px; max-width: 1200px; margin: 0 auto; }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  input, select {
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.875rem;
+  }
+  button {
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  button.danger { color: var(--danger); border-color: var(--danger); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  tbody tr:hover { background: var(--accent-weak); }
+  .table-wrap { overflow-x: auto; }
+  .empty { padding: 40px; text-align: center; color: var(--muted); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-weak);
+    color: var(--accent);
+    font-size: 0.75rem;
+  }
+  .actions button { margin-right: 6px; }
+  dialog {
+    border: none;
+    border-radius: var(--radius);
+    padding: 0;
+    background: var(--card);
+    color: var(--text);
+    width: min(520px, 92vw);
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.45); }
+  .dialog-body { padding: 20px; max-height: 70vh; overflow-y: auto; }
+  .dialog-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  .field { margin-bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.75rem; color: var(--muted); }
+  .field input, .field select { width: 100%; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #toast {
+    position: fixed; bottom: 20px; right: 20px; padding: 10px 16px;
+    border-radius: var(--radius); background: var(--text); color: var(--bg);
+    font-size: 0.85rem; display: none;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Patient Registry</h1>
+    <div class="sub">Records created over the phone by the Vapi voice agent, and via the REST API</div>
+  </div>
+  <button class="primary" id="new-btn">+ New patient</button>
+</header>
+
+<main>
+  <div class="toolbar">
+    <input id="f-last-name" placeholder="Filter by last name" />
+    <input id="f-phone" placeholder="Filter by phone (10 digits)" />
+    <input id="f-dob" placeholder="Filter by DOB (YYYY-MM-DD)" />
+    <button id="search-btn">Search</button>
+    <button id="reset-btn">Reset</button>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table id="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>DOB</th>
+            <th>Sex</th>
+            <th>Phone</th>
+            <th>City / State</th>
+            <th>Insurance</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none;">No patients found.</div>
+    </div>
+  </div>
+</main>
+
+<dialog id="dialog">
+  <form method="dialog" id="form">
+    <div class="dialog-body">
+      <h3 id="dialog-title" style="margin-top:0;">New patient</h3>
+      <input type="hidden" id="f-id" />
+      <div class="grid-2">
+        <div class="field"><label>First name *</label><input id="f-first" required /></div>
+        <div class="field"><label>Last name *</label><input id="f-lastn" required /></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Date of birth *</label><input id="f-dobv" type="date" required /></div>
+        <div class="field"><label>Sex *</label>
+          <select id="f-sex" required>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+            <option value="Decline to Answer">Decline to Answer</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Phone *</label><input id="f-phonev" placeholder="10 digits" required /></div>
+        <div class="field"><label>Email</label><input id="f-email" type="email" /></div>
+      </div>
+      <div class="field"><label>Address line 1 *</label><input id="f-addr1" required /></div>
+      <div class="field"><label>Address line 2</label><input id="f-addr2" /></div>
+      <div class="grid-2">
+        <div class="field"><label>City *</label><input id="f-city" required /></div>
+        <div class="field"><label>State (2-letter) *</label><input id="f-state" maxlength="2" required /></div>
+      </div>
+      <div class="field"><label>ZIP *</label><input id="f-zip" required /></div>
+      <div class="grid-2">
+        <div class="field"><label>Insurance provider</label><input id="f-ins-provider" /></div>
+        <div class="field"><label>Insurance member ID</label><input id="f-ins-id" /></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Emergency contact name</label><input id="f-ec-name" /></div>
+        <div class="field"><label>Emergency contact phone</label><input id="f-ec-phone" /></div>
+      </div>
+      <div class="field"><label>Preferred language</label><input id="f-lang" value="English" /></div>
+    </div>
+    <div class="dialog-footer">
+      <button type="button" id="cancel-btn">Cancel</button>
+      <button type="submit" class="primary" id="save-btn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+const API = ""; // same origin
+
+function toast(msg, isError) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.display = "block";
+  el.style.background = isError ? "#dc2626" : "var(--text)";
+  setTimeout(() => el.style.display = "none", 3500);
+}
+
+async function api(path, options) {
+  const res = await fetch(API + path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  const body = await res.json().catch(() => ({ data: null, error: { message: "Invalid response" } }));
+  if (!res.ok) {
+    const msg = body?.error?.message || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return body.data;
+}
+
+function fmtDate(s) {
+  if (!s) return "";
+  return new Date(s).toLocaleDateString();
+}
+function fmtPhone(p) {
+  if (!p || p.length !== 10) return p || "";
+  return `(${p.slice(0,3)}) ${p.slice(3,6)}-${p.slice(6)}`;
+}
+
+async function loadPatients() {
+  const params = new URLSearchParams();
+  const lastName = document.getElementById("f-last-name").value.trim();
+  const phone = document.getElementById("f-phone").value.trim();
+  const dob = document.getElementById("f-dob").value.trim();
+  if (lastName) params.set("last_name", lastName);
+  if (phone) params.set("phone_number", phone);
+  if (dob) params.set("date_of_birth", dob);
+
+  const tbody = document.getElementById("tbody");
+  const empty = document.getElementById("empty");
+  try {
+    const patients = await api("/patients?" + params.toString());
+    tbody.innerHTML = "";
+    empty.style.display = patients.length ? "none" : "block";
+    for (const p of patients) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.first_name} ${p.last_name}</td>
+        <td>${fmtDate(p.date_of_birth)}</td>
+        <td>${p.sex}</td>
+        <td>${fmtPhone(p.phone_number)}</td>
+        <td>${p.city}, ${p.state}</td>
+        <td>${p.insurance_provider ? `<span class="badge">${p.insurance_provider}</span>` : "—"}</td>
+        <td>${fmtDate(p.updated_at)}</td>
+        <td class="actions">
+          <button data-edit="${p.patient_id}">Edit</button>
+          <button class="danger" data-del="${p.patient_id}">Delete</button>
+        </td>`;
+      tbody.appendChild(tr);
+    }
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+
+function resetForm() {
+  for (const id of ["f-id","f-first","f-lastn","f-dobv","f-phonev","f-email","f-addr1","f-addr2",
+                     "f-city","f-state","f-zip","f-ins-provider","f-ins-id","f-ec-name","f-ec-phone"]) {
+    document.getElementById(id).value = "";
+  }
+  document.getElementById("f-sex").value = "Male";
+  document.getElementById("f-lang").value = "English";
+}
+
+document.getElementById("new-btn").addEventListener("click", () => {
+  resetForm();
+  document.getElementById("dialog-title").textContent = "New patient";
+  document.getElementById("dialog").showModal();
+});
+document.getElementById("cancel-btn").addEventListener("click", () => document.getElementById("dialog").close());
+document.getElementById("search-btn").addEventListener("click", loadPatients);
+document.getElementById("reset-btn").addEventListener("click", () => {
+  document.getElementById("f-last-name").value = "";
+  document.getElementById("f-phone").value = "";
+  document.getElementById("f-dob").value = "";
+  loadPatients();
+});
+
+document.getElementById("tbody").addEventListener("click", async (e) => {
+  const editId = e.target.getAttribute("data-edit");
+  const delId = e.target.getAttribute("data-del");
+  if (editId) {
+    try {
+      const p = await api("/patients/" + editId);
+      document.getElementById("f-id").value = p.patient_id;
+      document.getElementById("f-first").value = p.first_name;
+      document.getElementById("f-lastn").value = p.last_name;
+      document.getElementById("f-dobv").value = p.date_of_birth;
+      document.getElementById("f-sex").value = p.sex;
+      document.getElementById("f-phonev").value = p.phone_number;
+      document.getElementById("f-email").value = p.email || "";
+      document.getElementById("f-addr1").value = p.address_line_1;
+      document.getElementById("f-addr2").value = p.address_line_2 || "";
+      document.getElementById("f-city").value = p.city;
+      document.getElementById("f-state").value = p.state;
+      document.getElementById("f-zip").value = p.zip_code;
+      document.getElementById("f-ins-provider").value = p.insurance_provider || "";
+      document.getElementById("f-ins-id").value = p.insurance_member_id || "";
+      document.getElementById("f-ec-name").value = p.emergency_contact_name || "";
+      document.getElementById("f-ec-phone").value = p.emergency_contact_phone || "";
+      document.getElementById("f-lang").value = p.preferred_language || "English";
+      document.getElementById("dialog-title").textContent = "Edit patient";
+      document.getElementById("dialog").showModal();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  } else if (delId) {
+    if (!confirm("Soft-delete this patient record?")) return;
+    try {
+      await api("/patients/" + delId, { method: "DELETE" });
+      toast("Patient deleted");
+      loadPatients();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+});
+
+document.getElementById("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("f-id").value;
+  const payload = {
+    first_name: document.getElementById("f-first").value,
+    last_name: document.getElementById("f-lastn").value,
+    date_of_birth: document.getElementById("f-dobv").value,
+    sex: document.getElementById("f-sex").value,
+    phone_number: document.getElementById("f-phonev").value,
+    email: document.getElementById("f-email").value || null,
+    address_line_1: document.getElementById("f-addr1").value,
+    address_line_2: document.getElementById("f-addr2").value || null,
+    city: document.getElementById("f-city").value,
+    state: document.getElementById("f-state").value,
+    zip_code: document.getElementById("f-zip").value,
+    insurance_provider: document.getElementById("f-ins-provider").value || null,
+    insurance_member_id: document.getElementById("f-ins-id").value || null,
+    emergency_contact_name: document.getElementById("f-ec-name").value || null,
+    emergency_contact_phone: document.getElementById("f-ec-phone").value || null,
+    preferred_language: document.getElementById("f-lang").value || "English",
+  };
+  try {
+    if (id) {
+      await api("/patients/" + id, { method: "PUT", body: JSON.stringify(payload) });
+      toast("Patient updated");
+    } else {
+      await api("/patients", { method: "POST", body: JSON.stringify(payload) });
+      toast("Patient created");
+    }
+    document.getElementById("dialog").close();
+    loadPatients();
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+loadPatients();
+</script>
+</body>
+</html>
