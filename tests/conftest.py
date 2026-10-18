@@ -5,6 +5,10 @@ import os
 # engine, independent of the get_db dependency override below) touches a
 # throwaway file instead of the project's actual patients.db.
 os.environ["DATABASE_URL"] = "sqlite:///./.pytest_patients.db"
+# Tests must be isolated from whatever the developer's local .env happens to
+# contain (e.g. a real VAPI_WEBHOOK_SECRET set up for a live deploy) -- the
+# webhook tests below intentionally call /vapi/webhook with no secret header.
+os.environ["VAPI_WEBHOOK_SECRET"] = ""
 
 import pytest
 from fastapi.testclient import TestClient

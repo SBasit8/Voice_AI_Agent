@@ -15,10 +15,16 @@ Built for the "Voice AI Agent — Patient Registration" take-home assessment.
 
 | What | Where |
 |---|---|
-| Phone number | `<fill in after Vapi provisioning>` |
-| API base URL | `<fill in after Render deploy>` |
-| Dashboard | `<API base URL>/dashboard` |
-| API docs (Swagger) | `<API base URL>/docs` |
+| Phone number | **+1 (209) 819-5381** |
+| API base URL | https://voice-ai-patient-registration-7379.onrender.com |
+| Dashboard | https://voice-ai-patient-registration-7379.onrender.com/dashboard |
+| API docs (Swagger) | https://voice-ai-patient-registration-7379.onrender.com/docs |
+
+Note: the backend runs on Render's free tier, which spins down after periods
+of inactivity — the first request after a while may take ~30-50s to respond
+while the instance wakes up. The free Postgres instance also expires 30 days
+after creation (2026-11-16); if the demo is reviewed after that date, the
+database will need to be re-provisioned.
 
 ---
 

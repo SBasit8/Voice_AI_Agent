@@ -76,9 +76,12 @@ def build_assistant_payload(server_url: str) -> dict:
             "messages": [{"role": "system", "content": load_system_prompt()}],
             "tools": load_tools(),
         },
+        # Vapi's own built-in voice provider -- no separate ElevenLabs/PlayHT
+        # account or credential required, so this works out of the box for
+        # any Vapi account.
         "voice": {
-            "provider": "playht",
-            "voiceId": "jennifer",
+            "provider": "vapi",
+            "voiceId": "Elliot",
         },
         "transcriber": {
             "provider": "deepgram",
@@ -96,6 +99,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assistant-id", help="Update this existing assistant instead of creating a new one")
     parser.add_argument("--no-phone-number", action="store_true", help="Skip provisioning a phone number")
+    parser.add_argument(
+        "--area-code",
+        default="415",
+        help="Desired US area code for the free Vapi number (default: 415). Vapi's free-number "
+        "endpoint requires one; availability varies by area code.",
+    )
     args = parser.parse_args()
 
     load_env()
@@ -141,7 +150,14 @@ def main():
         if args.no_phone_number:
             return
 
-        phone_resp = client.post("/phone-number", json={"provider": "vapi", "assistantId": assistant_id})
+        phone_resp = client.post(
+            "/phone-number",
+            json={
+                "provider": "vapi",
+                "assistantId": assistant_id,
+                "numberDesiredAreaCode": args.area_code,
+            },
+        )
         if phone_resp.status_code >= 300:
             print(
                 "\nCould not auto-provision a phone number "
