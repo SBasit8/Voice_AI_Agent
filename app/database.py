@@ -8,7 +8,14 @@ def _normalize_database_url(url: str) -> str:
     # Render (and some other hosts) hand out "postgres://" which SQLAlchemy
     # 2.x no longer accepts as a dialect name.
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql://", 1)
+        url = url.replace("postgres://", "postgresql://", 1)
+    # Pin the driver explicitly rather than relying on SQLAlchemy's default
+    # dialect resolution for a bare "postgresql://" URL, which has changed
+    # across SQLAlchemy versions (psycopg2 vs. psycopg 3) and caused a
+    # ModuleNotFoundError in production when an unpinned SQLAlchemy release
+    # picked a driver we hadn't installed.
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
     return url
 
 
